@@ -2,14 +2,14 @@ export const CATEGORIES = ['Teaching / supervision','Consultation / lectures','G
 export const PRESETS = {
  tutorial1: {name:'1D03 · Tutorial TA1',budgets:[12,25,17,5,6,0]},
  tutorial2: {name:'1D03 · Tutorial TA2 (L35)',budgets:[6,31,17,5,6,0]},
- lab1: {name:'1D03 · Lab TA1',budgets:[30,0,15,15,0,5]},
- lab2: {name:'1D03 · Lab TA2',budgets:[30,0,5,15,0,15]},
- lab3: {name:'1D03 · Lab TA3 (double)',budgets:[60,0,25,15,0,30]},
- lab4: {name:'1D03 · Lab TA4 (L35)',budgets:[45,20,20,15,0,30]},
+ lab1: {name:'1D03 · Lab TA1 — Single (65h)',budgets:[30,0,15,15,0,5]},
+ lab2: {name:'1D03 · Lab TA2 — Single (65h)',budgets:[30,0,5,15,0,15]},
+ lab3: {name:'1D03 · Lab TA3 — Double (130h)',budgets:[60,0,25,15,0,30]},
+ lab4: {name:'1D03 · Lab TA4 (L35) — 130h',budgets:[45,20,20,15,0,30]},
  custom: {name:'New course · Lab',budgets:[0,0,0,0,0,0]}
 };
 export const uid = () => crypto.randomUUID();
-export function fresh(){return {version:1,revision:0,assignments:['tutorial1','lab1'].map(k=>({id:uid(),name:PRESETS[k].name,term:'Fall 2026',preset:k,budgets:[...PRESETS[k].budgets]})),entries:[],timer:null};}
+export function fresh(){return {version:1,revision:0,setupRequired:true,assignments:[{id:uid(),name:'Choose your TA role',term:'Fall 2026',preset:'custom',budgets:[0,0,0,0,0,0]}],entries:[],timer:null};}
 export function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 export function localStamp(d=new Date()){return `${localDate(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
 export function validDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T12:00:00');return Number.isFinite(+d)&&localDate(d)===s;}

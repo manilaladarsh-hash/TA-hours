@@ -3,3 +3,4 @@ node_modules/
 .sites-runtime/
 *.backup.json
 ta-hours-backup-*.json
+*.zip

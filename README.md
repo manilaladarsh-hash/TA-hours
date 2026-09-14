@@ -17,7 +17,7 @@ A private, device-local teaching assistant hours tracker. Built for McMaster PHY
 
 Select **Log work**, choose your assignment and category, and enter an activity such as “Midterm 1 marking”. Choose Duration, Start and end times, or Live timer. With a live timer, press **Stop & save** in the recording banner when finished. Stop and restart for breaks.
 
-Under **Manage**, choose the correct role and update the term/budgets to match your signed Hours of Work form. The starting Lab TA1 is an editable default, not a claim about your appointment. Shared duties must be recorded only once. For Lab role templates, midterm marking/invigilation belongs to the combined Other budget; retain the task name in Activity.
+On first use, choose your TA role and update the term/budgets to match your signed Hours of Work form. The tracker starts with no role selected, so it does not assume an appointment. Shared duties must be recorded only once. For Lab role templates, midterm marking/invigilation belongs to the combined Other budget; retain the task name in Activity.
 
 ## Privacy and backups
 
