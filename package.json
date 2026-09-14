@@ -1,0 +1,1 @@
+{"name":"ta-hours","version":"1.0.0","private":true,"type":"module","description":"Device-local teaching assistant hours tracker","scripts":{"test":"node --test tests/*.test.js","start":"python3 -m http.server 8000 --directory dist"},"license":"MIT"}
