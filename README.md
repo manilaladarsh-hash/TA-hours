@@ -1,6 +1,6 @@
 # TA Hours
 
-A simple teaching assistant hours tracker for keeping your work, course allocations, and remaining hours in one place. Designed for phones, tablets, and desktops, with presets for McMaster Physics **1C03** and **1D03** and editable assignments for other courses.
+A simple teaching assistant hours tracker for keeping your work, course allocations, and remaining hours in one place. Designed for phones, tablets, and desktops, with editable assignments and budgets for your courses.
 
 ## Open the tracker
 
@@ -38,9 +38,7 @@ On a computer, use the same website link or your browser's app installation opti
 
 ## Courses and terms
 
-- **Physics 1C03:** Lab TA template with **68 hours**—65 hours of duties plus a 3-hour allowance shown under Other. The separate, once-only 5-hour TA training is not included.
-- **Physics 1D03:** Tutorial TA1/TA2 and Lab TA1–TA4 templates, including 65-hour and 130-hour appointments.
-- **Other courses:** Create an assignment and enter your own name and budgets.
+Create an assignment for each course and term, then choose a template or enter your own name and budgets.
 
 Term dates are automatic: **Fall: September 1–December 31**, **Winter: January 1–April 30**, and **Summer: May 1–August 31**.
 
