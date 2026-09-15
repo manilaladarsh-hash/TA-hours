@@ -7,9 +7,9 @@ A private, device-local teaching assistant hours tracker. Built for McMaster PHY
 - Manual entry of actual hours/minutes or start/end times with non-work breaks.
 - Task timer that survives tab closure and phone locking; **Stop & save** automatically records a session and updates totals.
 - Timer durations round to the nearest minute, with a minimum of one minute. Entries can be edited or deleted afterward. Timers crossing midnight split automatically into daily entries. Timers longer than 24 hours require confirmation; discard a forgotten timer and enter actual work manually.
-- All-time and Monday–Sunday weekly totals, assignment/date filters, category budgets, remaining hours and over-allocation indicators.
+- All-time and Monday–Sunday weekly totals, automatic academic term dates, category budgets, remaining hours and over-allocation indicators.
 - Tutorial TA1/TA2 and Lab TA1–TA4 presets from the supplied orientation slides; additional courses and terms.
-- JSON backup/restore, filtered CSV reports and print-to-PDF using the browser's print dialog.
+- JSON backup/restore, term-based CSV reports and print-to-PDF using the browser's print dialog.
 - Responsive interface, installable app manifest and offline shell after first successful load.
 - No dependencies, accounts, analytics, backend or work-data uploads.
 
@@ -99,3 +99,13 @@ Source files live in `dist` (there is no build step). Bump the cache version in 
 ## License
 
 MIT. Contributions welcome through issues and pull requests. Never attach personal work backups or student information to public issues.
+
+## Terms and device layouts
+
+Select a season and year in Manage. Fall runs September 1–December 31, Winter January 1–April 30, and Summer May 1–August 31. The dashboard shows these dates automatically. The work log and CSV default to the selected term. If an assignment has entries outside its term, use the include checkbox to review/export them. Allocation totals always count all work assigned to the appointment. Existing custom term names remain supported with all dates visible.
+
+The layout adapts from small phones to tablets and desktops with touch-sized controls, readable form fields, scrollable dialogs and keyboard focus indicators. Records remain local to each browser; use JSON backup/import to move records between devices.
+
+## Physics 1C03
+
+The 1C03 Lab TA template follows the supplied Fall 2026 Hours of Work form: 30h teaching, 4h consultation, 10h grading, 18h preparation and 3h invigilation, totaling 65h of duties. The form adds 3h for a total of 68h; the app places this additional allowance under Other for tracking (the source leaves the Other duties row blank). The appointment starts September 8, 2026; the academic term remains September 1–December 31. The separate once-only 5h mandatory TA training is not included in this course template. The original form contains personal details and is kept outside the public repository.

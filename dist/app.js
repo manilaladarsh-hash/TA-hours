@@ -1,4 +1,4 @@
-import {CATEGORIES,PRESETS,uid,fresh,localDate,localStamp,validDate,duration,fmt,hours,total,overlap,validate,csv,timerEntries} from './core.js';
+import {CATEGORIES,PRESETS,uid,fresh,localDate,localStamp,validDate,duration,fmt,hours,total,overlap,validate,csv,timerEntries,termRange,inTerm,currentTerm} from './core.js';
 const $=id=>document.getElementById(id),KEY='ta-hours.v1';let state,blocked=false,editRevision=0,timerDraft=false;
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function notify(text){$('notice').textContent=text;}
@@ -10,12 +10,17 @@ async function change(fn,expected){
 }
 function assignmentsOptions(selected=''){return state.assignments.map(a=>`<option value="${escape(a.id)}" ${a.id===selected?'selected':''}>${escape(a.name)} · ${escape(a.term)}</option>`).join('');}
 function selectedAssignments(){return state.assignments.filter(a=>a.id===$('filter-assignment').value);}
-function visibleEntries(){const ids=new Set(selectedAssignments().map(a=>a.id));return state.entries.filter(e=>ids.has(e.assignment)&&(!$('from').value||e.date>=$('from').value)&&(!$('through').value||e.date<=$('through').value)).sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||'').localeCompare(a.createdAt||''));}
+function visibleEntries(){const ids=new Set(selectedAssignments().map(a=>a.id));return state.entries.filter(e=>ids.has(e.assignment)&&($('include-outside').checked||inTerm(e.date,selectedAssignments()[0]?.term))).sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||'').localeCompare(a.createdAt||''));}
 function render(){
  const selected=$('filter-assignment').value;$('filter-assignment').innerHTML=assignmentsOptions(selected);
+ renderTerm();
  const entries=visibleEntries(),aa=selectedAssignments(),ids=new Set(aa.map(a=>a.id)),all=state.entries.filter(e=>ids.has(e.assignment));
  $('worked').textContent=fmt(total(entries));$('entry-count').textContent=`${entries.length} ${entries.length===1?'entry':'entries'} · ${hours(total(entries))} decimal hours`;
  const monday=new Date();monday.setDate(monday.getDate()-(monday.getDay()+6)%7);const sunday=new Date(monday);sunday.setDate(sunday.getDate()+6);$('week').textContent=fmt(total(all.filter(e=>e.date>=localDate(monday)&&e.date<=localDate(sunday))));
+ const outside=all.filter(e=>!inTerm(e.date,aa[0]?.term)).length;
+ $('outside-control').hidden=!outside;
+ $('outside-label').textContent=`Include ${outside} ${outside===1?'entry':'entries'} outside this term`;
+ $('worked-scope').textContent=$('include-outside').checked||!termRange(aa[0]?.term)?'all assignment dates':'this term';
  const budget=aa.reduce((n,a)=>n+a.budgets.reduce((n,b)=>n+Math.round(b*60),0),0),remaining=budget-total(all);$('remaining').textContent=remaining<0?`${fmt(-remaining)} over`:fmt(remaining);$('budget-total').textContent=`${fmt(total(all))} worked / ${fmt(budget)} allocated`;
  $('log').innerHTML=entries.length?entries.map(e=>{const a=state.assignments.find(a=>a.id===e.assignment);return `<article class="entry"><div><time>${escape(e.date)}</time><h3>${escape(e.activity)}</h3><p><span class="tag">${escape(a.name)}</span>${escape(e.section)}</p><p>${escape(CATEGORIES[e.category])}${e.start?` · ${escape(e.start.slice(11))}–${escape(e.end.slice(0,10)!==e.date?e.end:e.end.slice(11))}${e.breakMinutes?' · '+e.breakMinutes+'m break':''}`:''}</p>${e.notes?`<p class="notes">${escape(e.notes)}</p>`:''}</div><div class="entry-right"><strong>${fmt(e.minutes)}</strong><p>${hours(e.minutes)} h</p><button class="quiet" data-edit="${escape(e.id)}">Edit</button><button class="quiet danger" data-delete="${escape(e.id)}">Delete</button></div></article>`;}).join(''):'<div class="empty"><strong>Your work starts here.</strong><p>Log a tutorial, lab, or the work behind the scenes.<br>No entries match this view yet.</p><button class="primary" id="empty-log">＋ Log your first entry</button></div>';
  $('allocations').innerHTML=aa.map(a=>{const ee=all.filter(e=>e.assignment===a.id);return `<div class="allocation"><div class="allocation-title">${escape(a.name)}</div><p>${escape(a.term)} · ${fmt(total(ee))} recorded</p>${CATEGORIES.map((c,i)=>{const n=total(ee.filter(e=>e.category===i)),b=Math.round(a.budgets[i]*60);if(!b&&!n)return '';return `<div class="bucket"><div class="bucket-label"><span>${escape(c)}</span><span class="${n>b?'over-text':''}">${hours(n)} / ${a.budgets[i]} h</span></div><div class="track ${n>b?'over':''}"><i style="width:${b?Math.min(100,n/b*100):100}%"></i></div>${n>b?`<small class="over-text">${fmt(n-b)} over allocation</small>`:''}</div>`;}).join('')}</div>`;}).join('');
@@ -41,12 +46,12 @@ $('entry-form').onsubmit=async event=>{event.preventDefault();$('entry-error').t
  }catch(e){$('entry-error').textContent=e.message;}finally{$('save-entry').disabled=false;}};
 async function stopTimer(){const t=state.timer;if(!t)return;const stoppedAt=Date.now();if(stoppedAt-t.startedAt>86400000&&!await ask('Save this long timer?','This timer has been running for more than 24 hours. Save only if all of that time was work. Otherwise cancel and discard the timer, then log the actual duration.','Save worked time'))return;
  try{const rev=state.revision;const entries=timerEntries(t,stoppedAt);await change(s=>{if(!s.timer||s.timer.startedAt!==t.startedAt)throw Error('The timer changed in another tab.');if(entries.some(e=>s.entries.some(x=>overlap(e,x))))throw Error('Timer overlaps a recorded time entry. Edit the conflicting entry before saving this timer.');s.entries.push(...entries);s.timer=null;},rev);notify(`Timer saved: ${fmt(total(entries))} added to ${t.activity}. ${entries.length>1?'Split by date for daily totals. ':''}You can edit it in the work log.`);}catch(e){notify(e.message);}}
-function fillAssignment(id){const a=state.assignments.find(a=>a.id===id);$('preset').value=a?.preset&&PRESETS[a.preset]?a.preset:'custom';$('assignment-name').value=a?.name||PRESETS.custom.name;$('term').value=a?.term||'Fall 2026';setBudgets(a?.budgets||[0,0,0,0,0,0]);$('delete-assignment').hidden=!a;}
-function setBudgets(b){$('budget-inputs').innerHTML=CATEGORIES.map((c,i)=>`<label>${escape(c)}<input id="budget-${i}" type="number" min="0" max="10000" step="0.01" value="${b[i]}" required></label>`).join('');budgetSum();}
+function fillAssignment(id){const a=state.assignments.find(a=>a.id===id);$('preset').value=a?.preset&&PRESETS[a.preset]?a.preset:'custom';$('assignment-name').value=a?.name||PRESETS.custom.name;fillTerm(a?.term||currentTerm());setBudgets(a?.budgets||[0,0,0,0,0,0]);$('delete-assignment').hidden=!a;}
+function setBudgets(b){$('preset-note').textContent=$('preset').value==='physics1c03'?'1C03: 65h duties + 3h additional hours (shown under Other) = 68h. Fall 2026 appointment starts Sep 8. Separate once-only 5h TA training is not included.':'';$('budget-inputs').innerHTML=CATEGORIES.map((c,i)=>`<label>${escape(c)}<input id="budget-${i}" type="number" min="0" max="10000" step="0.01" value="${b[i]}" required></label>`).join('');budgetSum();}
 function budgetSum(){$('allocation-total').textContent=`Total allocation: ${CATEGORIES.reduce((n,_,i)=>n+Number($('budget-'+i).value),0).toFixed(2)} hours`;}
-function openAssignments(add=false){editRevision=state.revision;$('assignment-error').textContent='';$('assignment-choice').innerHTML=assignmentsOptions($('filter-assignment').value)+'<option value="new">＋ New assignment</option>';$('preset').innerHTML=Object.entries(PRESETS).map(([k,p])=>`<option value="${k}">${escape(p.name)}</option>`).join('');if(add)$('assignment-choice').value='new';fillAssignment($('assignment-choice').value);if(state.setupRequired){$('preset').insertAdjacentHTML('afterbegin','<option value="" disabled selected>Choose Tutorial TA or Lab TA</option>');$('assignment-choice').disabled=true;$('delete-assignment').hidden=true;}else $('assignment-choice').disabled=false;$('assignment-dialog').showModal();}
+function openAssignments(add=false){editRevision=state.revision;$('assignment-error').textContent='';$('assignment-choice').innerHTML=assignmentsOptions($('filter-assignment').value)+'<option value="new">＋ New assignment</option>';$('preset').innerHTML=Object.entries(PRESETS).map(([k,p])=>`<option value="${k}">${escape(p.name)}</option>`).join('');if(add&&!state.setupRequired)$('assignment-choice').value='new';fillAssignment($('assignment-choice').value);if(state.setupRequired){$('preset').insertAdjacentHTML('afterbegin','<option value="" disabled selected>Choose your course and TA role</option>');$('assignment-choice').disabled=true;$('delete-assignment').hidden=true;}else $('assignment-choice').disabled=false;$('assignment-dialog').showModal();}
 $('assignment-choice').onchange=()=>fillAssignment($('assignment-choice').value);$('preset').onchange=()=>{const p=PRESETS[$('preset').value];$('assignment-name').value=p.name;setBudgets(p.budgets);};$('budget-inputs').oninput=budgetSum;
-$('assignment-form').onsubmit=async ev=>{ev.preventDefault();try{const a={id:$('assignment-choice').value==='new'?uid():$('assignment-choice').value,name:$('assignment-name').value.trim(),term:$('term').value.trim(),preset:$('preset').value,budgets:CATEGORIES.map((_,i)=>Number($('budget-'+i).value))};await change(s=>{const i=s.assignments.findIndex(x=>x.id===a.id);if(i<0)s.assignments.push(a);else s.assignments[i]=a;s.setupRequired=false;},editRevision);$('assignment-dialog').close();notify('Assignment saved. Budgets are estimates; worked hours are unchanged.');}catch(e){$('assignment-error').textContent=e.message;}};
+$('assignment-form').onsubmit=async ev=>{ev.preventDefault();try{const a={id:$('assignment-choice').value==='new'?uid():$('assignment-choice').value,name:$('assignment-name').value.trim(),term:readTerm(),preset:$('preset').value,budgets:CATEGORIES.map((_,i)=>Number($('budget-'+i).value))};await change(s=>{const i=s.assignments.findIndex(x=>x.id===a.id);if(i<0)s.assignments.push(a);else s.assignments[i]=a;s.setupRequired=false;},editRevision);$('filter-assignment').value=a.id;$('include-outside').checked=false;render();$('assignment-dialog').close();notify('Assignment saved. Budgets are estimates; worked hours are unchanged.');}catch(e){$('assignment-error').textContent=e.message;}};
 $('delete-assignment').onclick=async()=>{try{const id=$('assignment-choice').value;if(state.assignments.length===1)throw Error('Keep at least one assignment.');if(state.entries.some(e=>e.assignment===id)||state.timer?.assignment===id)throw Error('This assignment has work or an active timer. Keep it to preserve your records.');if(await ask('Delete empty assignment?','This removes the assignment and its budgets.','Delete')){await change(s=>{s.assignments=s.assignments.filter(a=>a.id!==id);},editRevision);$('assignment-dialog').close();}}catch(e){$('assignment-error').textContent=e.message;}};
 $('log').onclick=async ev=>{const edit=ev.target.closest('[data-edit]'),del=ev.target.closest('[data-delete]');if(edit)openEntry(edit.dataset.edit);if(del){const rev=state.revision;if(await ask('Delete this entry?','This removes its hours from all totals. Export a backup first if you need a copy.','Delete entry'))try{await change(s=>{s.entries=s.entries.filter(e=>e.id!==del.dataset.delete);},rev);notify('Entry deleted.');}catch(e){notify(e.message);}}};
 function download(content,name,type){const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
@@ -57,7 +62,39 @@ $('import-file').onchange=async()=>{try{const file=$('import-file').files[0];if(
 $('persist').onclick=async()=>{try{$('storage-status').textContent=await navigator.storage?.persist?.()?'Persistent storage granted. Continue keeping backups.':'Your browser did not grant persistent storage. Keep regular backups.';}catch{$('storage-status').textContent='Persistent storage is unavailable in this browser. Keep regular backups.';}};
 $('new-entry').onclick=()=>openEntry();$('manage').onclick=()=>openAssignments();$('add-course').onclick=()=>openAssignments(true);$('mode').onchange=modeChange;
 for(const id of ['start','end','break'])$(id).oninput=()=>{try{$('time-result').textContent='Worked time: '+fmt(duration($('start').value,$('end').value,Number($('break').value)));}catch{$('time-result').textContent='Enter valid start and end times to calculate worked time.';}};
-for(const id of ['filter-assignment','from','through'])$(id).onchange=()=>{render();if($('from').value&&$('through').value&&$('from').value>$('through').value)notify('The date range is reversed. Choose a Through date on or after From.');};$('clear-filters').onclick=()=>{$('from').value='';$('through').value='';render();};
+$('filter-assignment').onchange=()=>{$('include-outside').checked=false;render();};$('include-outside').onchange=render;
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
 window.addEventListener('storage',e=>{if(e.key!==KEY)return;try{state=validate(JSON.parse(e.newValue));render();notify('Records updated in another tab. Reopen any active edit form before saving.');}catch{blocked=true;notify('Saved data changed or was removed. Export your available records and reload.');}});
 setInterval(renderTimer,1000);render();if(state.setupRequired&&!blocked)openAssignments();if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>notify('Offline installation is unavailable. You can still use the tracker while online.'));
+
+function readableDate(date) {
+ return new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+}
+function renderTerm() {
+ const term=selectedAssignments()[0]?.term||'',range=termRange(term);
+ $('term-label').textContent=term;
+ $('term-dates').textContent=range?readableDate(range.start)+' – '+readableDate(range.end):'All dates · custom term';
+ const today=localDate(),start=range?Date.parse(range.start+'T00:00:00Z'):0,end=range?Date.parse(range.end+'T00:00:00Z')+86400000:0;
+ const percent=range?Math.max(0,Math.min(100,(Date.parse(today+'T00:00:00Z')-start)/(end-start)*100)):0;
+ $('term-progress').value=percent;
+ $('term-percent').textContent=range?Math.floor(percent)+'% elapsed':'';
+ $('term-status').textContent=!range?'Custom term · all recorded dates shown':today<range.start?'Upcoming term':today>range.end?'Term complete':'Term in progress';
+}
+function readTerm() {
+ return $('term-season').value==='custom'?$('term').value.trim():$('term-season').value+' '+$('term-year').value;
+}
+function previewTerm() {
+ const custom=$('term-season').value==='custom';
+ $('custom-term-label').hidden=!custom;$('term').required=custom;
+ $('term-year').disabled=custom;
+ const range=termRange(readTerm());
+ $('term-preview').textContent=range?readableDate(range.start)+' – '+readableDate(range.end)+' · dates set automatically':'Custom term: all assignment dates will be shown.';
+}
+function fillTerm(term) {
+ const range=termRange(term);
+ $('term').value=term;
+ $('term-season').value=range?term.trim().split(/\s+/)[0].replace(/^./,c=>c.toUpperCase()).toLowerCase().replace(/^./,c=>c.toUpperCase()):'custom';
+ $('term-year').value=range?range.start.slice(0,4):new Date().getFullYear();
+ previewTerm();
+}
+$('term-season').onchange=previewTerm;$('term-year').oninput=previewTerm;$('term').oninput=previewTerm;

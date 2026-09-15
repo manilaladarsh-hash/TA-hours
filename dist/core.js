@@ -6,10 +6,11 @@ export const PRESETS = {
  lab2: {name:'1D03 · Lab TA2 — Single (65h)',budgets:[30,0,5,15,0,15]},
  lab3: {name:'1D03 · Lab TA3 — Double (130h)',budgets:[60,0,25,15,0,30]},
  lab4: {name:'1D03 · Lab TA4 (L35) — 130h',budgets:[45,20,20,15,0,30]},
+ physics1c03: {name:'1C03 · Lab TA (68h)',budgets:[30,4,10,18,3,3]},
  custom: {name:'New course · Lab',budgets:[0,0,0,0,0,0]}
 };
 export const uid = () => crypto.randomUUID();
-export function fresh(){return {version:1,revision:0,setupRequired:true,assignments:[{id:uid(),name:'Choose your TA role',term:'Fall 2026',preset:'custom',budgets:[0,0,0,0,0,0]}],entries:[],timer:null};}
+export function fresh(){return {version:1,revision:0,setupRequired:true,assignments:[{id:uid(),name:'Choose your TA role',term:currentTerm(),preset:'custom',budgets:[0,0,0,0,0,0]}],entries:[],timer:null};}
 export function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 export function localStamp(d=new Date()){return `${localDate(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
 export function validDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T12:00:00');return Number.isFinite(+d)&&localDate(d)===s;}
@@ -38,3 +39,19 @@ export function validate(data){
  return data;
 }
 export function csv(entries,assignments){const cell=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Assignment','Term','Category','Activity','Section','Start','End','Break minutes','Worked minutes','Decimal hours','Notes'],...entries.map(e=>{const a=assignments.find(a=>a.id===e.assignment);return [e.date,a.name,a.term,CATEGORIES[e.category],e.activity,e.section,e.start||'',e.end||'',e.breakMinutes||0,e.minutes,hours(e.minutes),e.notes];})];return '\ufeff'+rows.map(r=>r.map(cell).join(',')).join('\r\n');}
+
+// Academic terms use inclusive local calendar dates.
+export function termRange(term) {
+ const match=/^(Fall|Winter|Summer)\s+(\d{4})$/i.exec(String(term).trim());
+ if(!match || Number(match[2])<1000) return null;
+ const season=match[1].toLowerCase(), year=match[2];
+ const [start,end]={fall:['09-01','12-31'],winter:['01-01','04-30'],summer:['05-01','08-31']}[season];
+ return {start:year+'-'+start,end:year+'-'+end};
+}
+export function inTerm(date,term) {
+ const range=termRange(term);
+ return !range || (date>=range.start && date<=range.end);
+}
+export function currentTerm(date=new Date()) {
+ return (date.getMonth()<4?'Winter':date.getMonth()<8?'Summer':'Fall')+' '+date.getFullYear();
+}

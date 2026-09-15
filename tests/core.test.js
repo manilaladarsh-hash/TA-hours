@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 import {PRESETS,fresh,duration,validate,overlap,csv,total,fmt,validDate} from '../dist/core.js';
-test('orientation allocations match each supplied role',()=>{assert.deepEqual(Object.values(PRESETS).map(p=>p.budgets.reduce((a,b)=>a+b,0)),[65,65,65,65,130,130,0]);});
+test('orientation allocations match each supplied role',()=>{assert.deepEqual(Object.values(PRESETS).map(p=>p.budgets.reduce((a,b)=>a+b,0)),[65,65,65,65,130,130,68,0]);});
 test('new trackers require role selection instead of assuming an appointment',()=>{const s=fresh();assert.equal(s.setupRequired,true);assert.equal(s.assignments.length,1);assert.equal(s.assignments[0].name,'Choose your TA role');assert.deepEqual(s.assignments[0].budgets,[0,0,0,0,0,0]);});
 test('actual lab schedule is 170 minutes, not a rounded 3h',()=>assert.equal(duration('2026-09-14T08:30','2026-09-14T11:20'),170));
 test('breaks and overnight end dates calculate correctly',()=>{assert.equal(duration('2026-09-14T23:30','2026-09-15T01:00',15),75);assert.throws(()=>duration('2026-09-14T15:00','2026-09-14T14:00'));assert.throws(()=>duration('2026-09-14T14:00','2026-09-14T15:00',60));});
